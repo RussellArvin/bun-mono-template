@@ -9,5 +9,4 @@ export const db = drizzle({
   schema,
 });
 
-export * from "./schema";
 export type Database = typeof db;

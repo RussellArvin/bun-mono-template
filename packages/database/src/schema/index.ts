@@ -1,1 +1,1 @@
-export * from "./users";
+// Export schema files here: export * from "./<tablename>";
