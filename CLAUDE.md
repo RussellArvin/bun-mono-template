@@ -1,111 +1,126 @@
----
-description: Use Bun instead of Node.js, npm, pnpm, or vite.
-globs: "*.ts, *.tsx, *.html, *.css, *.js, *.jsx, package.json"
-alwaysApply: false
----
+Bun workspace monorepo. All tooling runs from the root.
 
-Default to using Bun instead of Node.js.
+## Architecture
 
-- Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun test` instead of `jest` or `vitest`
-- Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
-- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
-- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
-- Bun automatically loads .env, so don't use dotenv.
+- Bun workspaces with `packages/*`
+- Packages: `@repo/shared`, `@repo/app` (Hono), `@repo/database` (Drizzle + Postgres)
+- Cross-package imports: `import { x } from "@repo/shared"` via `workspace:*`
+- Shared package exports raw `.ts` — no build step
+- Dev tooling at root: TypeScript, ESLint, Prettier, Husky
 
-## APIs
+## Commands
 
-- `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
-- `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
-- `Bun.redis` for Redis. Don't use `ioredis`.
-- `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
-- `WebSocket` is built-in. Don't use `ws`.
-- Prefer `Bun.file` over `node:fs`'s readFile/writeFile
-- Bun.$`ls` instead of execa.
+- `bun install` — install all workspace dependencies
+- `bun run dev` — start all packages in dev mode
+- `bun test` — run all tests
+- `bun test packages/app/` — run tests for a specific package
+- `bun run typecheck` — `tsc --noEmit` across all packages
+- `bun run lint` / `bun run lint:fix` — ESLint
+- `bun run format` / `bun run format:check` — Prettier
+- `bun run drizzle:generate` — generate migration from schema changes
+- `bun run drizzle:migrate` — apply pending migrations
+- `bun run drizzle:push` — push schema directly (dev only)
+- `bun run drizzle:studio` — open Drizzle Studio GUI
 
-## Testing
+## Do NOT Use
 
-Use `bun test` to run tests.
+- `npm`, `yarn`, `pnpm`, `node`, `ts-node`, `npx` — use `bun`
+- `express` — use `hono`
+- `dotenv` — Bun auto-loads `.env`
+- `pg`, `postgres.js` — use `drizzle-orm/bun-sql`
+- `jest`, `vitest` — use `bun:test`
+- `ws` — `WebSocket` is built-in
+- `better-sqlite3` — use `bun:sqlite`
 
-```ts#index.test.ts
-import { test, expect } from "bun:test";
+## Commit Convention
 
-test("hello world", () => {
-  expect(1).toBe(1);
+Format: `type: description` (lowercase)
+
+Types: `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `revert`
+
+Enforced by husky commit-msg hook — commits are rejected if they don't match.
+
+## Pre-commit Checks
+
+Runs automatically: `tsc --noEmit`, `eslint .`, `prettier --check .`
+
+Fix before committing: `bun run lint:fix && bun run format`
+
+## Adding a New Package
+
+1. Create `packages/<name>/package.json`:
+   ```json
+   {
+     "name": "@repo/<name>",
+     "version": "0.0.0",
+     "private": true,
+     "type": "module",
+     "exports": {
+       ".": "./src/index.ts",
+       "./*": "./src/*.ts"
+     }
+   }
+   ```
+2. Create `packages/<name>/tsconfig.json`:
+   ```json
+   {
+     "extends": "../../tsconfig.base.json",
+     "include": ["src/**/*.ts"]
+   }
+   ```
+3. Add source in `src/`, tests in `src/__tests__/`
+4. Other packages depend on it via `"@repo/<name>": "workspace:*"` in their package.json
+5. Run `bun install` to link
+
+## Adding Routes (app package)
+
+Routes go in `packages/app/src/index.ts` using Hono:
+
+```ts
+app.get("/path/:param", (c) => {
+  const param = c.req.param("param");
+  const query = c.req.query("key");
+  return c.json({ data: param });
 });
 ```
 
-## Frontend
+Return errors with status: `c.json({ error: "message" }, 400)`
 
-Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
+## Testing
 
-Server:
+- Framework: `bun:test`
+- File convention: `src/__tests__/<name>.test.ts`
+- Run: `bun test` (all) or `bun test packages/<name>/` (specific)
 
-```ts#index.ts
-import index from "./index.html"
+```ts
+import { test, expect, describe } from "bun:test";
 
-Bun.serve({
-  routes: {
-    "/": index,
-    "/api/users/:id": {
-      GET: (req) => {
-        return new Response(JSON.stringify({ id: req.params.id }));
-      },
-    },
-  },
-  // optional websocket support
-  websocket: {
-    open: (ws) => {
-      ws.send("Hello, world!");
-    },
-    message: (ws, message) => {
-      ws.send(message);
-    },
-    close: (ws) => {
-      // handle close
-    }
-  },
-  development: {
-    hmr: true,
-    console: true,
-  }
-})
+describe("feature", () => {
+  test("does something", () => {
+    expect(result).toBe(expected);
+  });
+});
 ```
 
-HTML files can import .tsx, .jsx or .js files directly and Bun's bundler will transpile & bundle automatically. `<link>` tags can point to stylesheets and Bun's CSS bundler will bundle.
+Hono routes are tested with `app.request()` — no live server needed:
 
-```html#index.html
-<html>
-  <body>
-    <h1>Hello, world!</h1>
-    <script type="module" src="./frontend.tsx"></script>
-  </body>
-</html>
+```ts
+import { app } from "../index";
+
+const res = await app.request("/path");
+const json = await res.json();
+expect(res.status).toBe(200);
 ```
 
-With the following `frontend.tsx`:
+## TypeScript Strictness
 
-```tsx#frontend.tsx
-import React from "react";
+These non-obvious strict flags are enabled:
 
-// import .css files directly and it works
-import './index.css';
+- `noUncheckedIndexedAccess` — array/object index access returns `T | undefined`
+- `exactOptionalPropertyTypes` — can't assign `undefined` to optional props, omit the key instead
+- `verbatimModuleSyntax` — use `import type` for type-only imports
+- `noUnusedLocals` / `noUnusedParameters` — no unused variables or params
 
-import { createRoot } from "react-dom/client";
+## Formatting
 
-const root = createRoot(document.body);
-
-export default function Frontend() {
-  return <h1>Hello, world!</h1>;
-}
-
-root.render(<Frontend />);
-```
-
-Then, run index.ts
-
-```sh
-bun --hot ./index.ts
-```
-
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.md`.
+Semicolons, double quotes, 2-space indent, trailing commas, 80 char width.
