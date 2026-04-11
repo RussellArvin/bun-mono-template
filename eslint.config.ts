@@ -18,6 +18,19 @@ export default tseslint.config(
     },
   },
   {
+    files: ["packages/app/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "CallExpression[callee.property.name='execute']",
+          message:
+            "db.execute() is banned. Use Drizzle query builder (db.select(), db.insert(), etc.). Add an eslint-disable comment with justification if necessary.",
+        },
+      ],
+    },
+  },
+  {
     ignores: ["node_modules/", "dist/", "packages/*/dist/"],
   },
 );
