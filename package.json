@@ -1,13 +1,18 @@
 {
   "name": "bun-mono-template",
-  "module": "index.ts",
-  "type": "module",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "build": "bun run --filter '*' build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "typecheck": "bunx tsc --noEmit",
+    "test": "bun test",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -19,9 +24,7 @@
     "husky": "^9.1.7",
     "jiti": "^2.6.1",
     "prettier": "^3.8.2",
+    "typescript": "^5",
     "typescript-eslint": "^8.58.1"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
   }
 }
