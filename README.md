@@ -64,6 +64,15 @@ This template includes Claude Code configuration for AI-assisted development:
 - Pre-approved permissions for all `bun` commands
 - Schema change reminders for migration generation
 
+## Renaming the Scope
+
+Packages use `@repo` as the default scope. To rename to your project:
+
+```bash
+sed -i '' 's/@repo/@myapp/g' package.json packages/*/package.json
+bun install
+```
+
 ## Adding a New Package
 
 ```bash
