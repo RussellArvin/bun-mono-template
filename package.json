@@ -5,18 +5,20 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "bun run --filter '*' dev",
+    "dev": "bun run --filter '*' --parallel dev",
     "build": "bun run --filter '*' build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "bunx tsc --noEmit",
+    "typecheck": "bunx tsc --noEmit && bun run --filter '@repo/app' typecheck",
     "drizzle:generate": "bun run --filter '@repo/database' drizzle:generate",
     "drizzle:migrate": "bun run --filter '@repo/database' drizzle:migrate",
+    "drizzle:migrate:test": "DATABASE_URL=postgresql://user:pass@localhost:5432/app_test bun run --filter '@repo/database' drizzle:migrate",
     "drizzle:push": "bun run --filter '@repo/database' drizzle:push",
     "drizzle:studio": "bun run --filter '@repo/database' drizzle:studio",
-    "test": "bun test",
+    "test": "bun test packages/server",
+    "test:e2e": "bun run --filter '@repo/e2e' test",
     "prepare": "husky"
   },
   "devDependencies": {

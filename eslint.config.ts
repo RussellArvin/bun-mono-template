@@ -16,9 +16,19 @@ export default tseslint.config(
         projectService: true,
       },
     },
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
   },
   {
-    files: ["packages/app/**/*.ts"],
+    files: ["packages/server/**/*.ts"],
     rules: {
       "no-restricted-syntax": [
         "error",
@@ -31,6 +41,14 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ["node_modules/", "dist/", "packages/*/dist/"],
+    ignores: [
+      "node_modules/",
+      "dist/",
+      "packages/*/dist/",
+      // shadcn / vendored UI primitives — not our code
+      "packages/app/src/components/ui/",
+      // playwright e2e — runs in its own runtime, has its own test runner
+      "packages/e2e/",
+    ],
   },
 );

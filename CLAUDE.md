@@ -3,22 +3,29 @@ Bun workspace monorepo. All tooling runs from the root.
 ## Architecture
 
 - Bun workspaces with `packages/*`
-- Packages: `@repo/shared`, `@repo/app` (Hono), `@repo/database` (Drizzle + Postgres)
-- Cross-package imports: `import { x } from "@repo/shared"` via `workspace:*`
-- Shared package exports raw `.ts` — no build step
+- Packages:
+  - `@repo/server` — Hono API (port 3000), env validation, typed RPC export
+  - `@repo/app` — React + Vite SPA (port 5173 in dev, built and served by `server` in prod)
+  - `@repo/database` — Drizzle ORM + PostgreSQL (`bun-sql`)
+  - `@repo/shared` — shared types/constants
+  - `@repo/e2e` — Playwright end-to-end tests
+- Cross-package imports via `workspace:*`: `import { x } from "@repo/shared"`
+- The app imports the server's `ApiRoutes` type for a type-safe Hono RPC client (`packages/app/src/lib/api.ts`)
+- Source packages export raw `.ts` — no build step except `@repo/app` (Vite build)
 - Dev tooling at root: TypeScript, ESLint, Prettier, Husky
 
 ## Commands
 
 - `bun install` — install all workspace dependencies
-- `bun run dev` — start all packages in dev mode
-- `bun test` — run all tests
-- `bun test packages/app/` — run tests for a specific package
-- `bun run typecheck` — `tsc --noEmit` across all packages
+- `bun run dev` — start all packages in dev mode (parallel)
+- `bun test` — run server unit/integration tests
+- `bun run test:e2e` — run Playwright e2e tests (auto-starts server + app)
+- `bun run typecheck` — `tsc --noEmit` across server/db/shared + `app` (with DOM types)
 - `bun run lint` / `bun run lint:fix` — ESLint
 - `bun run format` / `bun run format:check` — Prettier
 - `bun run drizzle:generate` — generate migration from schema changes
 - `bun run drizzle:migrate` — apply pending migrations
+- `bun run drizzle:migrate:test` — apply migrations to the test database
 - `bun run drizzle:push` — push schema directly (dev only)
 - `bun run drizzle:studio` — open Drizzle Studio GUI
 
@@ -72,45 +79,78 @@ Fix before committing: `bun run lint:fix && bun run format`
 4. Other packages depend on it via `"@repo/<name>": "workspace:*"` in their package.json
 5. Run `bun install` to link
 
-## Adding Routes (app package)
+## Adding API Routes (server package)
 
-Routes go in `packages/app/src/index.ts` using Hono:
+Route modules live in `packages/server/src/routes/<feature>.ts` and export a
+Hono app. Mount them in `packages/server/src/index.ts` by chaining `.route(...)`
+on `apiRoutes` so the RPC client picks up the types automatically.
 
 ```ts
-app.get("/path/:param", (c) => {
-  const param = c.req.param("param");
-  const query = c.req.query("key");
-  return c.json({ data: param });
-});
+// packages/server/src/routes/things.ts
+import { Hono } from "hono";
+import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
+import type { AppEnv } from "../lib/context";
+
+const createBody = z.object({ name: z.string().min(1) });
+
+export const thingsRoutes = new Hono<AppEnv>()
+  .get("/", (c) => c.json({ items: [] }))
+  .post("/", zValidator("json", createBody), (c) => {
+    const { name } = c.req.valid("json");
+    return c.json({ name }, 201);
+  });
 ```
 
-Return errors with status: `c.json({ error: "message" }, 400)`
+```ts
+// packages/server/src/index.ts
+export const apiRoutes = app
+  .basePath("/api")
+  .route("/echo", echoRoutes)
+  .route("/things", thingsRoutes); // ← add here
+```
+
+Return errors with status: `c.json({ error: "message" }, 400)`.
+
+For DB access, import from `@repo/database` and `@repo/database/schema` and use
+the Drizzle query builder only (`db.select()`, `db.insert()`, etc.) — never
+`db.execute()` (ESLint will reject it).
+
+## Adding Frontend Pages (app package)
+
+The app uses Vite + React. The RPC client at `packages/app/src/lib/api.ts` is
+fully typed from the server's `ApiRoutes` export — you get autocomplete on
+`api.things.$get()`, body shape, response type, everything.
+
+## Environment Variables
+
+Server-side env vars are validated at startup in `packages/server/src/lib/env.ts`
+with Zod. Add new vars to the schema there; invalid/missing values exit the
+process with a readable error rather than failing at first use.
+
+Frontend env vars must be prefixed `VITE_` and accessed via `import.meta.env`.
 
 ## Testing
 
-- Framework: `bun:test`
-- File convention: `src/__tests__/<name>.test.ts`
-- Run: `bun test` (all) or `bun test packages/<name>/` (specific)
+- Unit/integration: `bun:test`, files in `packages/server/src/__tests__/<name>.test.ts`
+- Env for tests is preloaded by `bunfig.toml` from `packages/server/src/__tests__/setup.ts`
+- Run all: `bun test` (server only by default — see root `package.json`)
+- E2E: Playwright in `packages/e2e/tests/`. Run with `bun run test:e2e`.
+  Playwright auto-starts the server (:3000) and the Vite dev server (:5173).
 
 ```ts
 import { test, expect, describe } from "bun:test";
+import { app } from "../index";
 
-describe("feature", () => {
-  test("does something", () => {
-    expect(result).toBe(expected);
+describe("GET /health", () => {
+  test("returns ok", async () => {
+    const res = await app.request("/health");
+    expect(res.status).toBe(200);
   });
 });
 ```
 
-Hono routes are tested with `app.request()` — no live server needed:
-
-```ts
-import { app } from "../index";
-
-const res = await app.request("/path");
-const json = await res.json();
-expect(res.status).toBe(200);
-```
+Hono routes are tested with `app.request()` — no live server needed.
 
 ## TypeScript Strictness
 
@@ -119,7 +159,7 @@ These non-obvious strict flags are enabled:
 - `noUncheckedIndexedAccess` — array/object index access returns `T | undefined`
 - `exactOptionalPropertyTypes` — can't assign `undefined` to optional props, omit the key instead
 - `verbatimModuleSyntax` — use `import type` for type-only imports
-- `noUnusedLocals` / `noUnusedParameters` — no unused variables or params
+- `noUnusedLocals` / `noUnusedParameters` — no unused variables or params (prefix with `_` to opt out)
 
 ## Formatting
 
