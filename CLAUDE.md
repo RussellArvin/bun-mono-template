@@ -43,6 +43,9 @@ Bun workspace monorepo. All tooling runs from the root.
 - `ws` — `WebSocket` is built-in
 - `better-sqlite3` — use `bun:sqlite`
 
+The package bans are enforced by `no-restricted-imports` in `.oxlintrc.json` —
+add new ones there as well as here.
+
 ## Commit Convention
 
 Format: `type: description` (lowercase)
@@ -53,9 +56,14 @@ Enforced by husky commit-msg hook — commits are rejected if they don't match.
 
 ## Pre-commit Checks
 
-Runs automatically: `bun run check` (typecheck, oxlint, Prettier check)
+Runs automatically: `bun run check` (typecheck, oxlint, Prettier check), then
+`bun test`
 
 Fix before committing: `bun run fix`, then `bun run check`
+
+CI (`.github/workflows/ci.yml`) runs `bun run check` on every pull request and
+push to `main`, so `--no-verify` does not get past it. `bun test` is commented
+out in CI for now.
 
 ## Adding a New Package
 
@@ -182,6 +190,18 @@ These non-obvious strict flags are enabled:
   plus a reason, not `eslint-disable`.
 - New repo-specific lint rules: add to `tools/oxlint-plugin-repo.mjs`, then
   enable as `repo/<rule>` in `.oxlintrc.json` (`db.execute()` ban is the example).
+- `repo/no-db-execute` matches by receiver name (`db`, `tx`, `trx`, `database`),
+  so name Drizzle handles accordingly.
+- Package boundaries are linted by `repo/workspace-imports` (configured per
+  package in `.oxlintrc.json` overrides):
+  - `app` may import `@repo/server` only with a top-level `import type`
+    (`import { type X }` still emits a runtime import) and never `@repo/database`
+  - `shared` imports no other workspace package; `database` only `shared`
+  - a new package needs its own override entry to get boundaries
+- In `packages/server`, `process.env` / `Bun.env` are lint errors outside
+  `src/lib/env.ts` and tests — import `env` from `lib/env` instead.
+- React hooks, `jsx-a11y` and import-cycle rules are on; custom components that
+  render native elements are mapped under `settings.jsx-a11y.components`.
 
 ## Formatting
 

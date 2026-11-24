@@ -1,1 +1,2 @@
-// Export schema files here: export * from "./<tablename>";
+// Barrel for table definitions: add `export * from "./<tablename>"` per table.
+export {};
