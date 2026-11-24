@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/knip/schema-jsonc.json",
+  // Vendored shadcn components export more than the app uses.
+  "ignore": ["packages/app/src/components/ui/**"],
+  "workspaces": {
+    "packages/server": {
+      "entry": ["src/**/__tests__/**/*.ts"],
+      // The only pre-wired dependency with no usage yet: importing it requires
+      // DATABASE_URL, so the starter server stays DB-free until the first
+      // table exists. Delete this line once a route queries the database.
+      "ignoreDependencies": ["@repo/database"],
+    },
+    "packages/shared": { "entry": ["src/**/__tests__/**/*.ts"] },
+  },
+}

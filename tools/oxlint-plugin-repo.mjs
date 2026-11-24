@@ -1,11 +1,23 @@
+// @ts-check
 // Local oxlint JS plugin for repo-specific rules.
 // Registered in .oxlintrc.json under `jsPlugins`.
+//
+// Types come from `@oxlint/plugins`: `defineRule` types the visitor nodes, so
+// this file is type-checked and linted like the rest of the repo.
+import { definePlugin, defineRule } from "@oxlint/plugins";
+
+/** @import { ESTree } from "@oxlint/plugins" */
 
 // Receivers that are treated as a Drizzle database/transaction handle.
 const DB_NAMES = new Set(["db", "tx", "trx", "database"]);
 
-// Name of the object `.execute()` is called on: `db.execute()` -> "db",
-// `c.var.db.execute()` -> "db", `this.db.execute()` -> "db".
+/**
+ * Name of the object `.execute()` is called on: `db.execute()` -> "db",
+ * `c.var.db.execute()` -> "db", `this.db.execute()` -> "db".
+ *
+ * @param {ESTree.Expression | ESTree.Super} node
+ * @returns {string | undefined}
+ */
 function receiverName(node) {
   if (node.type === "Identifier") return node.name;
   if (node.type === "MemberExpression" && !node.computed) {
@@ -14,7 +26,7 @@ function receiverName(node) {
   return undefined;
 }
 
-const noDbExecute = {
+const noDbExecute = defineRule({
   meta: {
     type: "problem",
     docs: { description: "Ban raw SQL via db.execute()" },
@@ -36,10 +48,28 @@ const noDbExecute = {
       },
     };
   },
-};
+});
 
+/**
+ * @param {string} source
+ * @param {string} pkg
+ */
 function matchesPackage(source, pkg) {
   return source === pkg || source.startsWith(`${pkg}/`);
+}
+
+/**
+ * Read a string-array option, ignoring anything malformed.
+ *
+ * @param {unknown} options
+ * @param {string} key
+ * @returns {string[]}
+ */
+function stringList(options, key) {
+  if (typeof options !== "object" || options === null) return [];
+  const value = /** @type {Record<string, unknown>} */ (options)[key];
+  if (!Array.isArray(value)) return [];
+  return value.filter((item) => typeof item === "string");
 }
 
 // Package boundaries. Options: [{ forbidden: string[], typeOnly: string[] }]
@@ -48,7 +78,7 @@ function matchesPackage(source, pkg) {
 //
 // `import { type X }` does not count as type-only: under
 // `verbatimModuleSyntax` it still emits a runtime import of the module.
-const workspaceImports = {
+const workspaceImports = defineRule({
   meta: {
     type: "problem",
     docs: { description: "Enforce workspace package boundaries" },
@@ -70,8 +100,14 @@ const workspaceImports = {
     ],
   },
   create(context) {
-    const { forbidden = [], typeOnly = [] } = context.options[0] ?? {};
+    const forbidden = stringList(context.options[0], "forbidden");
+    const typeOnly = stringList(context.options[0], "typeOnly");
 
+    /**
+     * @param {ESTree.Node} node
+     * @param {ESTree.Expression | null} sourceNode
+     * @param {boolean} isTypeOnly
+     */
     function check(node, sourceNode, isTypeOnly) {
       if (sourceNode?.type !== "Literal") return;
       const source = sourceNode.value;
@@ -101,12 +137,12 @@ const workspaceImports = {
       },
     };
   },
-};
+});
 
-export default {
+export default definePlugin({
   meta: { name: "repo" },
   rules: {
     "no-db-execute": noDbExecute,
     "workspace-imports": workspaceImports,
   },
-};
+});

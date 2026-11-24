@@ -1,17 +1,18 @@
-commit_msg=$(cat "$1")
+# Only the subject line is checked; the body is free-form.
+subject=$(head -n 1 "$1")
 
-# Conventional commits: type: description
+# Conventional commits: type: description (description starts lowercase)
 # Allowed types: feat, fix, chore, docs, style, refactor, perf, test, build, ci, revert
-pattern="^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert): .+"
+pattern="^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert): [^[:upper:][:space:]]"
 
-if ! echo "$commit_msg" | grep -qE "$pattern"; then
+if ! echo "$subject" | grep -qE "$pattern"; then
   echo "ERROR: Commit message does not follow conventional commits format."
   echo ""
-  echo "Expected: <type>: <description>"
+  echo "Expected: <type>: <description>   (description starts lowercase)"
   echo "Allowed types: feat, fix, chore, docs, style, refactor, perf, test, build, ci, revert"
   echo ""
   echo "Example: feat: add user authentication"
   echo ""
-  echo "Got: $commit_msg"
+  echo "Got: $subject"
   exit 1
 fi

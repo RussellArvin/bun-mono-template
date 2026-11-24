@@ -12,7 +12,8 @@
     "drizzle:generate": "drizzle-kit generate",
     "drizzle:migrate": "drizzle-kit migrate",
     "drizzle:push": "drizzle-kit push",
-    "drizzle:studio": "drizzle-kit studio"
+    "drizzle:studio": "drizzle-kit studio",
+    "drizzle:check": "drizzle-kit check"
   },
   "dependencies": {
     "drizzle-orm": "^0.44"

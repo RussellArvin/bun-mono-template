@@ -1,5 +1,11 @@
 Bun workspace monorepo. All tooling runs from the root.
 
+This repo is a **template**: people clone it and start building immediately.
+Keep it ready from the first clone — packages stay pre-wired, every check
+(`bun run check`, `bun test`, `bun run drizzle:check`) passes on a fresh clone
+with no database, and new tooling must not need manual setup or committed
+generated files to go green.
+
 ## Architecture
 
 - Bun workspaces with `packages/*`
@@ -21,14 +27,16 @@ Bun workspace monorepo. All tooling runs from the root.
 - `bun run dev` — start all packages in dev mode (parallel)
 - `bun test` — run all unit/integration tests (server + shared; e2e is excluded in `bunfig.toml`)
 - `bun run test:e2e` — run Playwright e2e tests (auto-starts server + app)
-- `bun run check` — everything the pre-commit hook runs: typecheck + lint + format check
+- `bun run check` — typecheck + lint + knip + format check (the pre-commit hook runs this, then `bun test`)
 - `bun run fix` — auto-fix everything fixable: oxlint autofixes, then Prettier
 - `bun run typecheck` — TypeScript 7 `tsc --noEmit` across server/db/shared + `app` (with DOM types)
 - `bun run lint` — oxlint only (no fixes)
+- `bun run knip` — unused files, exports and dependencies (config: `knip.jsonc`)
 - `bun run format` — Prettier write only
 - `bun run drizzle:generate` — generate migration from schema changes
 - `bun run drizzle:migrate` — apply pending migrations
 - `bun run drizzle:migrate:test` — apply migrations to the test database
+- `bun run drizzle:check` — fail if committed migrations are out of sync with the schema (runs in CI)
 - `bun run drizzle:push` — push schema directly (dev only)
 - `bun run drizzle:studio` — open Drizzle Studio GUI
 
@@ -48,7 +56,7 @@ add new ones there as well as here.
 
 ## Commit Convention
 
-Format: `type: description` (lowercase)
+Format: `type: description` — the description must start lowercase
 
 Types: `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `revert`
 
@@ -56,14 +64,14 @@ Enforced by husky commit-msg hook — commits are rejected if they don't match.
 
 ## Pre-commit Checks
 
-Runs automatically: `bun run check` (typecheck, oxlint, Prettier check), then
+Runs automatically: `bun run check` (typecheck, oxlint, knip, Prettier check), then
 `bun test`
 
 Fix before committing: `bun run fix`, then `bun run check`
 
-CI (`.github/workflows/ci.yml`) runs `bun run check` on every pull request and
-push to `main`, so `--no-verify` does not get past it. `bun test` is commented
-out in CI for now.
+CI (`.github/workflows/ci.yml`) runs `bun run check` and `bun run drizzle:check`
+on every pull request and push to `main`, so `--no-verify` does not get past
+them. `bun test` is commented out in CI for now.
 
 ## Adding a New Package
 
@@ -184,8 +192,20 @@ These non-obvious strict flags are enabled:
   overrides it with `["vite/client", "node"]` in its own tsconfig).
 - `packages/app` is type-checked separately (`tsc -p packages/app`, DOM libs);
   the root `tsconfig.json` excludes it. `bun run typecheck` runs both.
-- Not linted: `packages/e2e/`, `packages/app/src/components/ui/` (vendored
-  shadcn), `tools/`. `packages/e2e` is not type-checked either.
+- Not linted: `packages/app/src/components/ui/` (vendored shadcn). Everything
+  else is, including `packages/e2e` (also type-checked) and `tools/`.
+- Lint rules: the oxlint `correctness` category is on for every enabled plugin,
+  so `.oxlintrc.json` lists only the extra rules, options and overrides.
+- Unused `oxlint-disable` comments are errors, and warnings fail the run.
+- `knip` flagging something intentional? Add it to `knip.jsonc` with a comment
+  saying why rather than deleting the check. The one standing exception is
+  `@repo/database` in `packages/server` — remove it once a route queries the DB.
+- `tools/oxlint-plugin-repo.mjs` is typed via `@oxlint/plugins` (`defineRule`)
+  and is type-checked and linted like everything else.
+- `bun run drizzle:check` passes with no tables and no `drizzle/` folder; once a
+  table exists, the generated `packages/database/drizzle` must be committed.
+- After editing a file, Claude Code's PostToolUse hook
+  (`.claude/hooks/lint-edited.sh`) runs oxlint on it and reports errors.
 - Suppress a lint rule with `// oxlint-disable-next-line typescript/<rule>`
   plus a reason, not `eslint-disable`.
 - New repo-specific lint rules: add to `tools/oxlint-plugin-repo.mjs`, then

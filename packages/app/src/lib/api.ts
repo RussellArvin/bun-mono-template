@@ -5,7 +5,7 @@ import type { ApiRoutes } from "@repo/server";
 // serves on :5173 and the server runs on :3000.
 const viteApiUrl = import.meta.env["VITE_API_URL"] as string | undefined;
 
-export const API_BASE = import.meta.env.PROD
+const API_BASE = import.meta.env.PROD
   ? window.location.origin
   : (viteApiUrl ?? "http://localhost:3000");
 

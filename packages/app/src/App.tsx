@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Send } from "lucide-react";
+import { APP_NAME, ECHO_MAX_LENGTH } from "@repo/shared";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 
@@ -24,7 +26,7 @@ export default function App() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center gap-6 p-6">
-      <h1 className="text-3xl font-semibold">bun-mono-template</h1>
+      <h1 className="text-3xl font-semibold">{APP_NAME}</h1>
       <p className="text-muted-foreground text-center">
         React + Vite frontend talking to the Hono server via type-safe RPC.
       </p>
@@ -37,12 +39,14 @@ export default function App() {
             setMessage(e.target.value);
           }}
           placeholder="Type a message"
+          maxLength={ECHO_MAX_LENGTH}
         />
         <Button
           onClick={() => {
             void sendEcho();
           }}
         >
+          <Send aria-hidden="true" />
           Echo
         </Button>
       </div>
