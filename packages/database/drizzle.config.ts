@@ -5,7 +5,7 @@ export default defineConfig({
   schema: "./src/schema",
   out: "./drizzle",
   dbCredentials: {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    // oxlint-disable-next-line typescript/no-non-null-assertion
     url: process.env["DATABASE_URL"]!,
   },
 });

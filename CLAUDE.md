@@ -12,17 +12,20 @@ Bun workspace monorepo. All tooling runs from the root.
 - Cross-package imports via `workspace:*`: `import { x } from "@repo/shared"`
 - The app imports the server's `ApiRoutes` type for a type-safe Hono RPC client (`packages/app/src/lib/api.ts`)
 - Source packages export raw `.ts` — no build step except `@repo/app` (Vite build)
-- Dev tooling at root: TypeScript, ESLint, Prettier, Husky
+- Dev tooling at root: TypeScript 7, oxlint (type-aware via `oxlint-tsgolint`), Prettier, Husky
+- Lint config is `.oxlintrc.json`; repo-specific rules live in the local JS plugin `tools/oxlint-plugin-repo.mjs`
 
 ## Commands
 
 - `bun install` — install all workspace dependencies
 - `bun run dev` — start all packages in dev mode (parallel)
-- `bun test` — run server unit/integration tests
+- `bun test` — run all unit/integration tests (server + shared; e2e is excluded in `bunfig.toml`)
 - `bun run test:e2e` — run Playwright e2e tests (auto-starts server + app)
-- `bun run typecheck` — `tsc --noEmit` across server/db/shared + `app` (with DOM types)
-- `bun run lint` / `bun run lint:fix` — ESLint
-- `bun run format` / `bun run format:check` — Prettier
+- `bun run check` — everything the pre-commit hook runs: typecheck + lint + format check
+- `bun run fix` — auto-fix everything fixable: oxlint autofixes, then Prettier
+- `bun run typecheck` — TypeScript 7 `tsc --noEmit` across server/db/shared + `app` (with DOM types)
+- `bun run lint` — oxlint only (no fixes)
+- `bun run format` — Prettier write only
 - `bun run drizzle:generate` — generate migration from schema changes
 - `bun run drizzle:migrate` — apply pending migrations
 - `bun run drizzle:migrate:test` — apply migrations to the test database
@@ -32,6 +35,7 @@ Bun workspace monorepo. All tooling runs from the root.
 ## Do NOT Use
 
 - `npm`, `yarn`, `pnpm`, `node`, `ts-node`, `npx` — use `bun`
+- `eslint`, `typescript-eslint` — use `oxlint`
 - `express` — use `hono`
 - `dotenv` — Bun auto-loads `.env`
 - `pg`, `postgres.js` — use `drizzle-orm/bun-sql`
@@ -49,9 +53,9 @@ Enforced by husky commit-msg hook — commits are rejected if they don't match.
 
 ## Pre-commit Checks
 
-Runs automatically: `tsc --noEmit`, `eslint .`, `prettier --check .`
+Runs automatically: `bun run check` (typecheck, oxlint, Prettier check)
 
-Fix before committing: `bun run lint:fix && bun run format`
+Fix before committing: `bun run fix`, then `bun run check`
 
 ## Adding a New Package
 
@@ -114,7 +118,7 @@ Return errors with status: `c.json({ error: "message" }, 400)`.
 
 For DB access, import from `@repo/database` and `@repo/database/schema` and use
 the Drizzle query builder only (`db.select()`, `db.insert()`, etc.) — never
-`db.execute()` (ESLint will reject it).
+`db.execute()` (oxlint will reject it).
 
 ## Adding Frontend Pages (app package)
 
@@ -130,11 +134,15 @@ process with a readable error rather than failing at first use.
 
 Frontend env vars must be prefixed `VITE_` and accessed via `import.meta.env`.
 
+`DATABASE_URL` is the exception: `packages/database/src/index.ts` reads it
+directly and throws on import if it is missing, so anything importing
+`@repo/database` (including tests) needs it set.
+
 ## Testing
 
-- Unit/integration: `bun:test`, files in `packages/server/src/__tests__/<name>.test.ts`
+- Unit/integration: `bun:test`, files in `packages/<pkg>/src/__tests__/<name>.test.ts`
 - Env for tests is preloaded by `bunfig.toml` from `packages/server/src/__tests__/setup.ts`
-- Run all: `bun test` (server only by default — see root `package.json`)
+- Run all: `bun test`. Server only: `bun run test`
 - E2E: Playwright in `packages/e2e/tests/`. Run with `bun run test:e2e`.
   Playwright auto-starts the server (:3000) and the Vite dev server (:5173).
 
@@ -160,6 +168,20 @@ These non-obvious strict flags are enabled:
 - `exactOptionalPropertyTypes` — can't assign `undefined` to optional props, omit the key instead
 - `verbatimModuleSyntax` — use `import type` for type-only imports
 - `noUnusedLocals` / `noUnusedParameters` — no unused variables or params (prefix with `_` to opt out)
+
+## Gotchas
+
+- TypeScript 7 does not auto-include `@types/*`. Global types come from
+  `"types": ["bun"]` in `tsconfig.base.json` — add new ones there (the app
+  overrides it with `["vite/client", "node"]` in its own tsconfig).
+- `packages/app` is type-checked separately (`tsc -p packages/app`, DOM libs);
+  the root `tsconfig.json` excludes it. `bun run typecheck` runs both.
+- Not linted: `packages/e2e/`, `packages/app/src/components/ui/` (vendored
+  shadcn), `tools/`. `packages/e2e` is not type-checked either.
+- Suppress a lint rule with `// oxlint-disable-next-line typescript/<rule>`
+  plus a reason, not `eslint-disable`.
+- New repo-specific lint rules: add to `tools/oxlint-plugin-repo.mjs`, then
+  enable as `repo/<rule>` in `.oxlintrc.json` (`db.execute()` ban is the example).
 
 ## Formatting
 
