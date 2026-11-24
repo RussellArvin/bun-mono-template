@@ -21,9 +21,11 @@ Bun workspace monorepo. All tooling runs from the root.
 - `bun run dev` — start all packages in dev mode (parallel)
 - `bun test` — run server unit/integration tests
 - `bun run test:e2e` — run Playwright e2e tests (auto-starts server + app)
+- `bun run check` — everything the pre-commit hook runs: typecheck + lint + format check
+- `bun run fix` — auto-fix everything fixable: oxlint autofixes, then Prettier
 - `bun run typecheck` — TypeScript 7 `tsc --noEmit` across server/db/shared + `app` (with DOM types)
-- `bun run lint` / `bun run lint:fix` — oxlint (`lint:fix` applies lint autofixes only; it does not format — use `bun run format`)
-- `bun run format` / `bun run format:check` — Prettier
+- `bun run lint` — oxlint only (no fixes)
+- `bun run format` — Prettier write only
 - `bun run drizzle:generate` — generate migration from schema changes
 - `bun run drizzle:migrate` — apply pending migrations
 - `bun run drizzle:migrate:test` — apply migrations to the test database
@@ -51,9 +53,9 @@ Enforced by husky commit-msg hook — commits are rejected if they don't match.
 
 ## Pre-commit Checks
 
-Runs automatically: `bun run typecheck`, `oxlint .`, `prettier --check .`
+Runs automatically: `bun run check` (typecheck, oxlint, Prettier check)
 
-Fix before committing: `bun run lint:fix && bun run format` (both are needed — Prettier no longer runs as a lint rule)
+Fix before committing: `bun run fix`, then `bun run check`
 
 ## Adding a New Package
 

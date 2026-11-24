@@ -4,9 +4,11 @@
       "Bash(bun install)",
       "Bash(bun test*)",
       "Bash(bun run dev*)",
+      "Bash(bun run check)",
+      "Bash(bun run fix)",
       "Bash(bun run typecheck)",
-      "Bash(bun run lint*)",
-      "Bash(bun run format*)",
+      "Bash(bun run lint)",
+      "Bash(bun run format)",
       "Bash(bun run drizzle:*)",
       "Bash(bunx tsc --noEmit*)"
     ]

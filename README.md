@@ -39,8 +39,10 @@ await client.api.echo.$post({ json: { message: "hi" } });
 | `bun run dev`                  | Start server + app in parallel                   |
 | `bun test`                     | Run server unit/integration tests                |
 | `bun run test:e2e`             | Run Playwright e2e (auto-starts server + app)    |
+| `bun run check`                | Typecheck + lint + format check (pre-commit)     |
+| `bun run fix`                  | Auto-fix lint issues, then format                |
 | `bun run typecheck`            | Type-check all packages (incl. browser tsconfig) |
-| `bun run lint` / `lint:fix`    | oxlint                                           |
+| `bun run lint`                 | oxlint                                           |
 | `bun run format`               | Prettier                                         |
 | `bun run drizzle:generate`     | Generate migration from schema changes           |
 | `bun run drizzle:migrate`      | Apply pending migrations                         |
