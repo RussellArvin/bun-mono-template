@@ -8,7 +8,7 @@
       "Bash(bun run lint*)",
       "Bash(bun run format*)",
       "Bash(bun run drizzle:*)",
-      "Bash(bun run tsc --noEmit*)"
+      "Bash(bunx tsc --noEmit*)"
     ]
   },
   "hooks": {

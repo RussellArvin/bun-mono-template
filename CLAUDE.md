@@ -12,8 +12,8 @@ Bun workspace monorepo. All tooling runs from the root.
 - Cross-package imports via `workspace:*`: `import { x } from "@repo/shared"`
 - The app imports the server's `ApiRoutes` type for a type-safe Hono RPC client (`packages/app/src/lib/api.ts`)
 - Source packages export raw `.ts` — no build step except `@repo/app` (Vite build)
-- Dev tooling at root: TypeScript, ESLint, Prettier, Husky
-- Two TypeScript installs: `typescript-7` (alias of `typescript@7`, the Go compiler) does all type-checking via `bun run tsc` / `bun run typecheck`; `typescript` stays on 6.x only because typescript-eslint needs the JS compiler API. Don't use `bunx tsc` — that is the 6.x binary.
+- Dev tooling at root: TypeScript 7, oxlint (type-aware via `oxlint-tsgolint`), Prettier, Husky
+- Lint config is `.oxlintrc.json`; repo-specific rules live in the local JS plugin `tools/oxlint-plugin-repo.mjs`
 
 ## Commands
 
@@ -22,8 +22,7 @@ Bun workspace monorepo. All tooling runs from the root.
 - `bun test` — run server unit/integration tests
 - `bun run test:e2e` — run Playwright e2e tests (auto-starts server + app)
 - `bun run typecheck` — TypeScript 7 `tsc --noEmit` across server/db/shared + `app` (with DOM types)
-- `bun run tsc <args>` — run the TypeScript 7 (Go) compiler directly
-- `bun run lint` / `bun run lint:fix` — ESLint
+- `bun run lint` / `bun run lint:fix` — oxlint
 - `bun run format` / `bun run format:check` — Prettier
 - `bun run drizzle:generate` — generate migration from schema changes
 - `bun run drizzle:migrate` — apply pending migrations
@@ -34,6 +33,7 @@ Bun workspace monorepo. All tooling runs from the root.
 ## Do NOT Use
 
 - `npm`, `yarn`, `pnpm`, `node`, `ts-node`, `npx` — use `bun`
+- `eslint`, `typescript-eslint` — use `oxlint`
 - `express` — use `hono`
 - `dotenv` — Bun auto-loads `.env`
 - `pg`, `postgres.js` — use `drizzle-orm/bun-sql`
@@ -51,7 +51,7 @@ Enforced by husky commit-msg hook — commits are rejected if they don't match.
 
 ## Pre-commit Checks
 
-Runs automatically: `bun run typecheck`, `eslint .`, `prettier --check .`
+Runs automatically: `bun run typecheck`, `oxlint .`, `prettier --check .`
 
 Fix before committing: `bun run lint:fix && bun run format`
 
@@ -116,7 +116,7 @@ Return errors with status: `c.json({ error: "message" }, 400)`.
 
 For DB access, import from `@repo/database` and `@repo/database/schema` and use
 the Drizzle query builder only (`db.select()`, `db.insert()`, etc.) — never
-`db.execute()` (ESLint will reject it).
+`db.execute()` (oxlint will reject it).
 
 ## Adding Frontend Pages (app package)
 

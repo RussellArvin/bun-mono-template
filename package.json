@@ -7,12 +7,11 @@
   "scripts": {
     "dev": "bun run --filter '*' --parallel dev",
     "build": "bun run --filter '*' build",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "tsc": "bun node_modules/typescript-7/bin/tsc",
-    "typecheck": "bun run tsc --noEmit && bun run tsc --noEmit -p packages/app",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p packages/app",
     "drizzle:generate": "bun run --filter '@repo/database' drizzle:generate",
     "drizzle:migrate": "bun run --filter '@repo/database' drizzle:migrate",
     "drizzle:migrate:test": "DATABASE_URL=postgresql://user:pass@localhost:5432/app_test bun run --filter '@repo/database' drizzle:migrate",
@@ -23,16 +22,11 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@types/bun": "latest",
-    "eslint": "^10.2.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.5",
     "husky": "^9.1.7",
-    "jiti": "^2.6.1",
+    "oxlint": "^1.95.0",
+    "oxlint-tsgolint": "^7.0.2008",
     "prettier": "^3.8.2",
-    "typescript": "^6.0.2",
-    "typescript-7": "npm:typescript@^7.0.2",
-    "typescript-eslint": "^8.58.1"
+    "typescript": "^7.0.2"
   }
 }

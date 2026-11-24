@@ -40,7 +40,7 @@ await client.api.echo.$post({ json: { message: "hi" } });
 | `bun test`                     | Run server unit/integration tests                |
 | `bun run test:e2e`             | Run Playwright e2e (auto-starts server + app)    |
 | `bun run typecheck`            | Type-check all packages (incl. browser tsconfig) |
-| `bun run lint` / `lint:fix`    | ESLint                                           |
+| `bun run lint` / `lint:fix`    | oxlint                                           |
 | `bun run format`               | Prettier                                         |
 | `bun run drizzle:generate`     | Generate migration from schema changes           |
 | `bun run drizzle:migrate`      | Apply pending migrations                         |
@@ -77,7 +77,7 @@ await client.api.echo.$post({ json: { message: "hi" } });
 | **Tailwind v4** | Styling, with shadcn/ui primitives                         |
 | **Zod**         | Env validation + request body validation                   |
 | **Playwright**  | End-to-end testing                                         |
-| **ESLint**      | Strict type-checked rules, `db.execute()` banned in server |
+| **oxlint**      | Strict type-aware rules, `db.execute()` banned in server   |
 | **Prettier**    | Formatting                                                 |
 | **Husky**       | Pre-commit (typecheck + lint + format) + commit-msg checks |
 
