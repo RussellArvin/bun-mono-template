@@ -13,6 +13,7 @@ Bun workspace monorepo. All tooling runs from the root.
 - The app imports the server's `ApiRoutes` type for a type-safe Hono RPC client (`packages/app/src/lib/api.ts`)
 - Source packages export raw `.ts` — no build step except `@repo/app` (Vite build)
 - Dev tooling at root: TypeScript, ESLint, Prettier, Husky
+- Two TypeScript installs: `typescript-7` (alias of `typescript@7`, the Go compiler) does all type-checking via `bun run tsc` / `bun run typecheck`; `typescript` stays on 6.x only because typescript-eslint needs the JS compiler API. Don't use `bunx tsc` — that is the 6.x binary.
 
 ## Commands
 
@@ -20,7 +21,8 @@ Bun workspace monorepo. All tooling runs from the root.
 - `bun run dev` — start all packages in dev mode (parallel)
 - `bun test` — run server unit/integration tests
 - `bun run test:e2e` — run Playwright e2e tests (auto-starts server + app)
-- `bun run typecheck` — `tsc --noEmit` across server/db/shared + `app` (with DOM types)
+- `bun run typecheck` — TypeScript 7 `tsc --noEmit` across server/db/shared + `app` (with DOM types)
+- `bun run tsc <args>` — run the TypeScript 7 (Go) compiler directly
 - `bun run lint` / `bun run lint:fix` — ESLint
 - `bun run format` / `bun run format:check` — Prettier
 - `bun run drizzle:generate` — generate migration from schema changes
@@ -49,7 +51,7 @@ Enforced by husky commit-msg hook — commits are rejected if they don't match.
 
 ## Pre-commit Checks
 
-Runs automatically: `tsc --noEmit`, `eslint .`, `prettier --check .`
+Runs automatically: `bun run typecheck`, `eslint .`, `prettier --check .`
 
 Fix before committing: `bun run lint:fix && bun run format`
 

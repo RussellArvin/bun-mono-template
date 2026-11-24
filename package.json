@@ -11,7 +11,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "bunx tsc --noEmit && bun run --filter '@repo/app' typecheck",
+    "tsc": "bun node_modules/typescript-7/bin/tsc",
+    "typecheck": "bun run tsc --noEmit && bun run tsc --noEmit -p packages/app",
     "drizzle:generate": "bun run --filter '@repo/database' drizzle:generate",
     "drizzle:migrate": "bun run --filter '@repo/database' drizzle:migrate",
     "drizzle:migrate:test": "DATABASE_URL=postgresql://user:pass@localhost:5432/app_test bun run --filter '@repo/database' drizzle:migrate",
@@ -30,7 +31,8 @@
     "husky": "^9.1.7",
     "jiti": "^2.6.1",
     "prettier": "^3.8.2",
-    "typescript": "^5",
+    "typescript": "^6.0.2",
+    "typescript-7": "npm:typescript@^7.0.2",
     "typescript-eslint": "^8.58.1"
   }
 }
