@@ -1,0 +1,6 @@
+{
+  // Use the TypeScript 7 (Go) language server, matching `bun run typecheck`.
+  // Needs the recommended "TypeScript Native Preview" extension.
+  "js/ts.experimental.useTsgo": true,
+  "typescript.experimental.useTsgo": true
+}
