@@ -10,6 +10,5 @@
       // table exists. Delete this line once a route queries the database.
       "ignoreDependencies": ["@repo/database"],
     },
-    "packages/shared": { "entry": ["src/**/__tests__/**/*.ts"] },
   },
 }
