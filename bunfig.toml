@@ -1,2 +1,4 @@
 [test]
 preload = ["./packages/server/src/__tests__/setup.ts"]
+# playwright specs run via `bun run test:e2e`, not bun:test
+pathIgnorePatterns = ["packages/e2e/**"]
