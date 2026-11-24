@@ -44,10 +44,3 @@ await db.update(myTable).set({ ... }).where(eq(myTable.id, id));
 // Delete
 await db.delete(myTable).where(eq(myTable.id, id));
 ```
-
-## Drizzle Commands
-
-- `bun run drizzle:generate` — generate migration from schema changes
-- `bun run drizzle:migrate` — apply pending migrations
-- `bun run drizzle:push` — push schema directly to DB (dev only, no migration file)
-- `bun run drizzle:studio` — open Drizzle Studio GUI

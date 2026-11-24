@@ -19,7 +19,7 @@ Bun workspace monorepo. All tooling runs from the root.
 
 - `bun install` — install all workspace dependencies
 - `bun run dev` — start all packages in dev mode (parallel)
-- `bun test` — run server unit/integration tests
+- `bun test` — run all unit/integration tests (server + shared; e2e is excluded in `bunfig.toml`)
 - `bun run test:e2e` — run Playwright e2e tests (auto-starts server + app)
 - `bun run check` — everything the pre-commit hook runs: typecheck + lint + format check
 - `bun run fix` — auto-fix everything fixable: oxlint autofixes, then Prettier
@@ -134,11 +134,15 @@ process with a readable error rather than failing at first use.
 
 Frontend env vars must be prefixed `VITE_` and accessed via `import.meta.env`.
 
+`DATABASE_URL` is the exception: `packages/database/src/index.ts` reads it
+directly and throws on import if it is missing, so anything importing
+`@repo/database` (including tests) needs it set.
+
 ## Testing
 
-- Unit/integration: `bun:test`, files in `packages/server/src/__tests__/<name>.test.ts`
+- Unit/integration: `bun:test`, files in `packages/<pkg>/src/__tests__/<name>.test.ts`
 - Env for tests is preloaded by `bunfig.toml` from `packages/server/src/__tests__/setup.ts`
-- Run all: `bun test` (server only by default — see root `package.json`)
+- Run all: `bun test`. Server only: `bun run test`
 - E2E: Playwright in `packages/e2e/tests/`. Run with `bun run test:e2e`.
   Playwright auto-starts the server (:3000) and the Vite dev server (:5173).
 
@@ -164,6 +168,20 @@ These non-obvious strict flags are enabled:
 - `exactOptionalPropertyTypes` — can't assign `undefined` to optional props, omit the key instead
 - `verbatimModuleSyntax` — use `import type` for type-only imports
 - `noUnusedLocals` / `noUnusedParameters` — no unused variables or params (prefix with `_` to opt out)
+
+## Gotchas
+
+- TypeScript 7 does not auto-include `@types/*`. Global types come from
+  `"types": ["bun"]` in `tsconfig.base.json` — add new ones there (the app
+  overrides it with `["vite/client", "node"]` in its own tsconfig).
+- `packages/app` is type-checked separately (`tsc -p packages/app`, DOM libs);
+  the root `tsconfig.json` excludes it. `bun run typecheck` runs both.
+- Not linted: `packages/e2e/`, `packages/app/src/components/ui/` (vendored
+  shadcn), `tools/`. `packages/e2e` is not type-checked either.
+- Suppress a lint rule with `// oxlint-disable-next-line typescript/<rule>`
+  plus a reason, not `eslint-disable`.
+- New repo-specific lint rules: add to `tools/oxlint-plugin-repo.mjs`, then
+  enable as `repo/<rule>` in `.oxlintrc.json` (`db.execute()` ban is the example).
 
 ## Formatting
 
