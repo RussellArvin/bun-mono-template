@@ -116,7 +116,12 @@
     "typescript/class-literal-property-style": "error",
     "typescript/consistent-generic-constructors": "error",
     "typescript/consistent-indexed-object-style": "error",
-    "typescript/consistent-type-assertions": "error",
+    "typescript/consistent-type-assertions": [
+      "error",
+      {
+        "assertionStyle": "never"
+      }
+    ],
     "typescript/consistent-type-definitions": "error",
     "typescript/dot-notation": "error",
     "typescript/no-confusing-non-null-assertion": "error",
@@ -201,7 +206,14 @@
     "react/button-has-type": "error",
     "react/no-danger": "error",
     "react/iframe-missing-sandbox": "error",
-    "react/only-export-components": "error"
+    "react/only-export-components": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+    "no-console": [
+      "error",
+      {
+        "allow": ["error", "warn"]
+      }
+    ]
   },
   "overrides": [
     {

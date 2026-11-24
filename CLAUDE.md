@@ -25,7 +25,7 @@ generated files to go green.
 
 - `bun install` — install all workspace dependencies
 - `bun run dev` — start all packages in dev mode (parallel)
-- `bun test` — run all unit/integration tests (server + shared; e2e is excluded in `bunfig.toml`)
+- `bun test` — run all unit/integration tests (e2e is excluded in `bunfig.toml`)
 - `bun run test:e2e` — run Playwright e2e tests (auto-starts server + app)
 - `bun run check` — typecheck + lint + knip + format check (the pre-commit hook runs this, then `bun test`)
 - `bun run fix` — auto-fix everything fixable: oxlint autofixes, then Prettier
@@ -64,6 +64,9 @@ Runs automatically: `bun run check` (typecheck, oxlint, knip, Prettier check), t
 `bun test`
 
 Fix before committing: `bun run fix`, then `bun run check`
+
+Pull requests start from `.github/pull_request_template.md` (why, what changed,
+how it was verified).
 
 CI (`.github/workflows/ci.yml`) runs `bun run check` and `bun run drizzle:check`
 on every pull request and push to `main`, so `--no-verify` does not get past
@@ -144,7 +147,8 @@ Server-side env vars are validated at startup in `packages/server/src/lib/env.ts
 with Zod. Add new vars to the schema there; invalid/missing values exit the
 process with a readable error rather than failing at first use.
 
-Frontend env vars must be prefixed `VITE_` and accessed via `import.meta.env`.
+Frontend env vars must be prefixed `VITE_`, declared in
+`packages/app/src/vite-env.d.ts`, and accessed via `import.meta.env`.
 
 `DATABASE_URL` is the exception: `packages/database/src/index.ts` reads it
 directly and throws on import if it is missing, so anything importing
@@ -155,6 +159,9 @@ directly and throws on import if it is missing, so anything importing
 - Unit/integration: `bun:test`, files in `packages/<pkg>/src/__tests__/<name>.test.ts`
 - Env for tests is preloaded by `bunfig.toml` from `packages/server/src/__tests__/setup.ts`
 - Run all: `bun test`. Server only: `bun run test`
+- This is a template, so tests are examples of the pattern, not coverage: keep
+  them few, and make each one fail when the behaviour it names breaks. Replace
+  a weak test rather than adding another.
 - E2E: Playwright in `packages/e2e/tests/`. Run with `bun run test:e2e`.
   Playwright auto-starts the server (:3000) and the Vite dev server (:5173).
 
@@ -180,6 +187,15 @@ These non-obvious strict flags are enabled:
 - `exactOptionalPropertyTypes` — can't assign `undefined` to optional props, omit the key instead
 - `verbatimModuleSyntax` — use `import type` for type-only imports
 - `noUnusedLocals` / `noUnusedParameters` — no unused variables or params (prefix with `_` to opt out)
+
+Lint adds three more type-safety rules:
+
+- No `as` casts (`as const` and `satisfies` are fine). Narrow with a type
+  guard, parse with Zod, or declare the type at the source — for a new `VITE_*`
+  variable, add it to `ImportMetaEnv` in `packages/app/src/vite-env.d.ts`.
+- A `switch` over a union must handle every member, so adding a variant is a
+  lint error until each switch is updated.
+- No `console.log` — only `console.error` and `console.warn` are allowed.
 
 ## Gotchas
 
