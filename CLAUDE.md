@@ -44,15 +44,11 @@ generated files to go green.
 
 - `npm`, `yarn`, `pnpm`, `node`, `ts-node`, `npx` — use `bun`
 - `eslint`, `typescript-eslint` — use `oxlint`
-- `express` — use `hono`
-- `dotenv` — Bun auto-loads `.env`
-- `pg`, `postgres.js` — use `drizzle-orm/bun-sql`
-- `jest`, `vitest` — use `bun:test`
-- `ws` — `WebSocket` is built-in
-- `better-sqlite3` — use `bun:sqlite`
 
-The package bans are enforced by `no-restricted-imports` in `.oxlintrc.json` —
-add new ones there as well as here.
+Banned packages (`express`, `dotenv`, `jest` and so on) are not listed here.
+The single source is `no-restricted-imports` in `.oxlintrc.json`: importing one
+is a lint error whose message names the replacement. To ban another package,
+add it there with a message that says what to use instead.
 
 ## Commit Convention
 
@@ -219,7 +215,10 @@ These non-obvious strict flags are enabled:
   - `shared` imports no other workspace package; `database` only `shared`
   - a new package needs its own override entry to get boundaries
 - In `packages/server`, `process.env` / `Bun.env` are lint errors outside
-  `src/lib/env.ts` and tests — import `env` from `lib/env` instead.
+  `src/lib/env.ts` and tests — import `env` from `lib/env` instead (the error
+  message says so).
+- Lint messages for repo conventions must name the fix: the file, export or
+  package to use instead, not just what is wrong.
 - React hooks, `jsx-a11y` and import-cycle rules are on; custom components that
   render native elements are mapped under `settings.jsx-a11y.components`.
 

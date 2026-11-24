@@ -7,8 +7,7 @@
     "promise",
     "import",
     "react",
-    "jsx-a11y",
-    "node"
+    "jsx-a11y"
   ],
   "jsPlugins": ["./tools/oxlint-plugin-repo.mjs"],
   "categories": {
@@ -139,23 +138,23 @@
         "paths": [
           {
             "name": "express",
-            "message": "Use hono."
+            "message": "Use hono \u2014 see packages/server/src/routes/echo.ts for the route pattern."
           },
           {
             "name": "dotenv",
-            "message": "Bun auto-loads .env."
+            "message": "Bun auto-loads .env; remove the import."
           },
           {
             "name": "dotenv/config",
-            "message": "Bun auto-loads .env."
+            "message": "Bun auto-loads .env; remove the import."
           },
           {
             "name": "pg",
-            "message": "Use drizzle-orm/bun-sql."
+            "message": "Use `db` from @repo/database (drizzle-orm/bun-sql)."
           },
           {
             "name": "postgres",
-            "message": "Use drizzle-orm/bun-sql."
+            "message": "Use `db` from @repo/database (drizzle-orm/bun-sql)."
           },
           {
             "name": "drizzle-orm/node-postgres",
@@ -179,7 +178,7 @@
           },
           {
             "name": "ws",
-            "message": "WebSocket is built into Bun."
+            "message": "Use the global WebSocket built into Bun."
           },
           {
             "name": "better-sqlite3",
@@ -239,13 +238,17 @@
     {
       "files": ["packages/server/**/*.ts"],
       "rules": {
-        "node/no-process-env": "error",
         "no-restricted-properties": [
           "error",
           {
+            "object": "process",
+            "property": "env",
+            "message": "Import `env` from packages/server/src/lib/env.ts instead. Add new variables to the Zod schema there so they are validated at startup."
+          },
+          {
             "object": "Bun",
             "property": "env",
-            "message": "Read env through the validated `env` export in packages/server/src/lib/env.ts."
+            "message": "Import `env` from packages/server/src/lib/env.ts instead. Add new variables to the Zod schema there so they are validated at startup."
           }
         ],
         "repo/workspace-imports": [
@@ -262,7 +265,7 @@
         "packages/server/src/__tests__/**"
       ],
       "rules": {
-        "node/no-process-env": "off"
+        "no-restricted-properties": "off"
       }
     },
     {
