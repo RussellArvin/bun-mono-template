@@ -11,6 +11,13 @@ updates:
       # One PR for all minor and patch bumps; majors arrive separately.
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # Type definitions must match the runtime, not run ahead of it.
+      # Bump @types/bun by hand, together with `packageManager` in package.json.
+      - dependency-name: "@types/bun"
+      # Bun 1.3 implements Node 24, so stay on @types/node 24.x.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
