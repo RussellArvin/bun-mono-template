@@ -279,6 +279,61 @@ const requireRouteValidation = defineRule({
   },
 });
 
+// Raw HTML elements that have a design-system component. Options:
+// [{ elements: { button: "Button", input: "Input" } }]
+// (`react/forbid-elements` cannot do this here: it resolves <Button> through
+// the jsx-a11y component map and would flag the component itself.)
+const noRawElements = defineRule({
+  meta: {
+    type: "problem",
+    docs: { description: "Use design-system components over raw elements" },
+    messages: {
+      raw: "Use <{{component}}> from @/components/ui/{{file}} instead of a raw <{{element}}>. If it is not installed yet, run `bunx shadcn@latest add {{file}}` in packages/app.",
+    },
+    schema: [
+      {
+        type: "object",
+        properties: {
+          elements: {
+            type: "object",
+            additionalProperties: { type: "string" },
+          },
+        },
+        additionalProperties: false,
+      },
+    ],
+  },
+  create(context) {
+    /** @type {Map<string, string>} */
+    const elements = new Map();
+    const [options] = context.options;
+    if (typeof options === "object" && options !== null) {
+      const configured = /** @type {Record<string, unknown>} */ (options)[
+        "elements"
+      ];
+      if (typeof configured === "object" && configured !== null) {
+        for (const [element, component] of Object.entries(configured)) {
+          if (typeof component === "string") elements.set(element, component);
+        }
+      }
+    }
+
+    return {
+      JSXOpeningElement(node) {
+        if (node.name.type !== "JSXIdentifier") return;
+        const element = node.name.name;
+        const component = elements.get(element);
+        if (component === undefined) return;
+        context.report({
+          node: node.name,
+          messageId: "raw",
+          data: { element, component, file: component.toLowerCase() },
+        });
+      },
+    };
+  },
+});
+
 export default definePlugin({
   meta: { name: "repo" },
   rules: {
@@ -286,5 +341,6 @@ export default definePlugin({
     "workspace-imports": workspaceImports,
     "table-conventions": tableConventions,
     "require-route-validation": requireRouteValidation,
+    "no-raw-elements": noRawElements,
   },
 });

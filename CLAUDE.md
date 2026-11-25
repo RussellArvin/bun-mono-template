@@ -3,9 +3,9 @@ Bun workspace monorepo. All tooling runs from the root.
 This repo is a **template**: people clone it and start building immediately.
 Keep it ready from the first clone — packages stay pre-wired, every check
 (`bun run check`, `bun test`, `bun run drizzle:check`) passes on a fresh clone
-with no database, and new tooling must not need manual setup or committed
-generated files to go green. The one generated file in the repo is
-`.env.example`, kept because people copy it; `bun run env:example` rewrites it.
+with no database, and new tooling must not need manual setup. Two kinds of
+generated file are committed: `.env.example` (people copy it) and the Drizzle
+migrations in `packages/database/drizzle`.
 
 ## Architecture
 
@@ -31,7 +31,7 @@ generated files to go green. The one generated file in the repo is
 - `bun run check` — typecheck + lint + knip + workspace, docs and env checks + format check (the pre-commit hook runs this, then `bun test`)
 - `bun run fix` — auto-fix everything fixable: oxlint autofixes, then Prettier
 - `bun run typecheck` — TypeScript 7 `tsc --noEmit` across server/db/shared + `app` (with DOM types)
-- `bun run lint` — oxlint only (no fixes)
+- `bun run lint` — oxlint only (no fixes); also runs `lint:ui`, the design-token rules for vendored shadcn components
 - `bun run knip` — unused files, exports and dependencies (config: `knip.jsonc`)
 - `bun run check:workspace` — sherif: consistent dependency versions and `package.json` hygiene across packages
 - `bun run check:docs` — every `bun run <script>` named in a doc must exist in the root `package.json`
@@ -45,41 +45,36 @@ generated files to go green. The one generated file in the repo is
 - `bun run drizzle:push` — push schema directly (dev only)
 - `bun run drizzle:studio` — open Drizzle Studio GUI
 
-## Do NOT Use
+## Rules
 
-- `npm`, `yarn`, `pnpm`, `node`, `ts-node`, `npx` — use `bun`
-- `eslint`, `typescript-eslint` — use `oxlint`
+Most rules here are enforced by tools, so they are not listed in this file:
+break one and `bun run check` fails with an error that names the fix. To see
+or change them, read `.oxlintrc.json` (lint rules), `tools/oxlint-plugin-repo.mjs`
+(the `repo/*` rules) and the `check` script in `package.json`.
 
-Banned packages (`express`, `dotenv`, `jest` and so on) are not listed here.
-The single source is `no-restricted-imports` in `.oxlintrc.json`: importing one
-is a lint error whose message names the replacement. To ban another package,
-add it there with a message that says what to use instead.
+The rules below are the only ones nothing enforces, so follow them by hand:
 
-## Commit Convention
+- Use `bun`, never `npm`, `yarn`, `pnpm`, `node`, `ts-node` or `npx`; use
+  `oxlint`, never `eslint`.
+- Return errors as `c.json({ error: "message" }, status)`.
+- Mount route modules by chaining `.route(...)` on `apiRoutes`.
+- Frontend env vars are prefixed `VITE_` and declared in
+  `packages/app/src/vite-env.d.ts`.
+- Tests go in `packages/<pkg>/src/__tests__/<name>.test.ts`.
 
-Format: `type: description` — the description must start lowercase
+## Commits, Pull Requests and CI
 
-Types: `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `revert`
-
-Enforced by husky commit-msg hook — commits are rejected if they don't match.
-
-## Pre-commit Checks
-
-Runs automatically: `bun run check` (typecheck, oxlint, knip, workspace, docs
-and env checks, Prettier check), then
-`bun test`
-
-Fix before committing: `bun run fix`, then `bun run check`
-
-Pull requests start from `.github/pull_request_template.md` (why, what changed,
-how it was verified).
-
-CI (`.github/workflows/ci.yml`) runs `bun run check` and `bun run drizzle:check`
-on every pull request and push to `main`, so `--no-verify` does not get past
-them. `bun test` is commented out in CI for now. A second job runs `actionlint`
-on the workflow files. The Bun version for CI comes from `packageManager` in the
-root `package.json` — change it there. Dependabot (`.github/dependabot.yml`)
-opens weekly update PRs.
+- Commit subject: `type: description`, description lowercase. Types: `feat`,
+  `fix`, `chore`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
+  `revert`.
+- The pre-commit hook runs `bun run check`, then `bun test`. To fix:
+  `bun run fix`, then `bun run check`.
+- Pull requests start from `.github/pull_request_template.md`.
+- CI (`.github/workflows/ci.yml`) runs `bun run check`, `bun run drizzle:check`
+  and `actionlint` on every pull request and push to `main`. `bun test` is
+  commented out there for now.
+- CI's Bun version comes from `packageManager` in the root `package.json`.
+- Dependabot (`.github/dependabot.yml`) opens weekly update PRs.
 
 ## Adding a New Package
 
@@ -138,14 +133,9 @@ export const apiRoutes = app
   .route("/things", thingsRoutes); // ← add here
 ```
 
-Return errors with status: `c.json({ error: "message" }, 400)`.
-
-Every `.post()`, `.put()` and `.patch()` route must pass `zValidator(...)` before
-its handler (`repo/require-route-validation`).
-
 For DB access, import from `@repo/database` and `@repo/database/schema` and use
-the Drizzle query builder only (`db.select()`, `db.insert()`, etc.) — never
-`db.execute()` (oxlint will reject it).
+the Drizzle query builder (`db.select()`, `db.insert()`, etc.).
+`packages/database/src/schema/notes.ts` is the example table.
 
 ## Adding Frontend Pages (app package)
 
@@ -170,28 +160,16 @@ directly and throws on import if it is missing, so anything importing
 
 ## Testing
 
-- Unit/integration: `bun:test`, files in `packages/<pkg>/src/__tests__/<name>.test.ts`
-- Env for tests is preloaded by `bunfig.toml` from `packages/server/src/__tests__/setup.ts`
-- Run all: `bun test`. Server only: `bun run test`
+- `bun:test`; env is preloaded by `bunfig.toml` from
+  `packages/server/src/__tests__/setup.ts`.
+- Run all: `bun test`. Server only: `bun run test`.
+- Hono routes are tested with `app.request()` — no live server needed. Copy
+  `packages/server/src/__tests__/routes.test.ts`.
 - This is a template, so tests are examples of the pattern, not coverage: keep
   them few, and make each one fail when the behaviour it names breaks. Replace
   a weak test rather than adding another.
 - E2E: Playwright in `packages/e2e/tests/`. Run with `bun run test:e2e`.
   Playwright auto-starts the server (:3000) and the Vite dev server (:5173).
-
-```ts
-import { test, expect, describe } from "bun:test";
-import { app } from "../index";
-
-describe("GET /health", () => {
-  test("returns ok", async () => {
-    const res = await app.request("/health");
-    expect(res.status).toBe(200);
-  });
-});
-```
-
-Hono routes are tested with `app.request()` — no live server needed.
 
 ## TypeScript Strictness
 
@@ -201,18 +179,6 @@ These non-obvious strict flags are enabled:
 - `exactOptionalPropertyTypes` — can't assign `undefined` to optional props, omit the key instead
 - `verbatimModuleSyntax` — use `import type` for type-only imports
 - `noUnusedLocals` / `noUnusedParameters` — no unused variables or params (prefix with `_` to opt out)
-- `noImplicitReturns` — every code path in a function must return
-- `erasableSyntaxOnly` — no `enum`, constructor parameter properties or
-  code-bearing `namespace`; use union types and plain field assignments
-
-Lint adds three more type-safety rules:
-
-- No `as` casts (`as const` and `satisfies` are fine). Narrow with a type
-  guard, parse with Zod, or declare the type at the source — for a new `VITE_*`
-  variable, add it to `ImportMetaEnv` in `packages/app/src/vite-env.d.ts`.
-- A `switch` over a union must handle every member, so adding a variant is a
-  lint error until each switch is updated.
-- No `console.log` — only `console.error` and `console.warn` are allowed.
 
 ## Gotchas
 
@@ -221,44 +187,30 @@ Lint adds three more type-safety rules:
   overrides it with `["vite/client", "node"]` in its own tsconfig).
 - `packages/app` is type-checked separately (`tsc -p packages/app`, DOM libs);
   the root `tsconfig.json` excludes it. `bun run typecheck` runs both.
-- Not linted: `packages/app/src/components/ui/` (vendored shadcn). Everything
-  else is, including `packages/e2e` (also type-checked) and `tools/`.
 - Lint rules: the oxlint `correctness` category is on for every enabled plugin,
   so `.oxlintrc.json` lists only the extra rules, options and overrides.
 - Unused `oxlint-disable` comments are errors, and warnings fail the run.
 - `knip` flagging something intentional? Add it to `knip.jsonc` with a comment
   saying why rather than deleting the check. The one standing exception is
   `@repo/database` in `packages/server` — remove it once a route queries the DB.
-- `tools/oxlint-plugin-repo.mjs` is typed via `@oxlint/plugins` (`defineRule`)
-  and is type-checked and linted like everything else.
-- `bun run drizzle:check` passes with no tables and no `drizzle/` folder; once a
-  table exists, the generated `packages/database/drizzle` must be committed.
+- `packages/database/drizzle` (generated migrations) is committed; after a
+  schema change run `bun run drizzle:generate` and commit the result.
+- `postgres` is a dev dependency of `packages/database` only because
+  drizzle-kit's CLI (migrate, push, studio) needs a driver. App code uses
+  `drizzle-orm/bun-sql`; importing `postgres` is a lint error.
+- A new package needs its own `repo/workspace-imports` override in
+  `.oxlintrc.json` to get boundary checks.
+- Vendored shadcn components (`packages/app/src/components/ui/`) are skipped by
+  the main lint run and checked by `bun run lint:ui` for theme colors, inline
+  styles and unknown classes only (`.oxlintrc.ui.json`). Custom components that
+  render native elements are mapped under `settings.jsx-a11y.components`.
+- `tools/lint-fixtures` holds deliberately broken code for the lint-rule test;
+  it is excluded from lint, typecheck and knip.
 - After editing a file, Claude Code's PostToolUse hook
   (`.claude/hooks/lint-edited.sh`) runs oxlint on it and reports errors.
 - Suppress a lint rule with `// oxlint-disable-next-line typescript/<rule>`
   plus a reason, not `eslint-disable`.
 - New repo-specific lint rules: add to `tools/oxlint-plugin-repo.mjs`, then
   enable as `repo/<rule>` in `.oxlintrc.json` (`db.execute()` ban is the example).
-- `repo/no-db-execute` matches by receiver name (`db`, `tx`, `trx`, `database`),
-  so name Drizzle handles accordingly.
-- Package boundaries are linted by `repo/workspace-imports` (configured per
-  package in `.oxlintrc.json` overrides):
-  - `app` may import `@repo/server` only with a top-level `import type`
-    (`import { type X }` still emits a runtime import) and never `@repo/database`
-  - `shared` imports no other workspace package; `database` only `shared`
-  - a new package needs its own override entry to get boundaries
-- In `packages/server`, `process.env` / `Bun.env` are lint errors outside
-  `src/lib/env.ts` and tests — import `env` from `lib/env` instead (the error
-  message says so).
 - Lint messages for repo conventions must name the fix: the file, export or
   package to use instead, not just what is wrong.
-- React hooks, `jsx-a11y` and import-cycle rules are on; custom components that
-  render native elements are mapped under `settings.jsx-a11y.components`.
-- `@shadcn/lint` (design-system rules for Tailwind and shadcn components) is
-  registered under `jsPlugins` in `.oxlintrc.json`, but none of its rules is
-  enabled yet. Turn rules on as `shadcn/<rule>` there; it finds the components
-  and theme through `packages/app/components.json`.
-
-## Formatting
-
-Semicolons, double quotes, 2-space indent, trailing commas, 80 char width.

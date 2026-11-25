@@ -8,5 +8,5 @@
     "tools/**/*.mjs",
     "tools/**/*.ts"
   ],
-  "exclude": ["packages/app"]
+  "exclude": ["packages/app", "tools/lint-fixtures"]
 }

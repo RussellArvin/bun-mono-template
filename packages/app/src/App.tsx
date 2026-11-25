@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Send } from "lucide-react";
 import { APP_NAME, ECHO_MAX_LENGTH } from "@repo/shared";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
 
 export default function App() {
@@ -32,8 +33,8 @@ export default function App() {
       </p>
 
       <div className="flex w-full gap-2">
-        <input
-          className="border-input bg-background flex-1 rounded-md border px-3 py-2 text-sm"
+        <Input
+          className="flex-1"
           value={message}
           onChange={(e) => {
             setMessage(e.target.value);

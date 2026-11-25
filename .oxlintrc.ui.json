@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [],
+  "jsPlugins": ["@shadcn/lint"],
+  "categories": {
+    "correctness": "off"
+  },
+  "options": {
+    "denyWarnings": true
+  },
+  "settings": {
+    "shadcn": {
+      "note": "Do not work around this with a disable comment. Reuse a variant or theme token; if the design needs a new one, add the variant in packages/app/src/components/ui or the token in packages/app/src/index.css."
+    }
+  },
+  "rules": {
+    "shadcn/no-raw-colors": "error",
+    "shadcn/no-inline-styles": "error",
+    "shadcn/no-unknown-classes": "error"
+  }
+}
