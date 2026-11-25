@@ -9,7 +9,7 @@
     "react",
     "jsx-a11y"
   ],
-  "jsPlugins": ["./tools/oxlint-plugin-repo.mjs"],
+  "jsPlugins": ["./tools/oxlint-plugin-repo.mjs", "@shadcn/lint"],
   "categories": {
     "correctness": "error"
   },

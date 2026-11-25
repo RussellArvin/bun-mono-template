@@ -254,6 +254,10 @@ Lint adds three more type-safety rules:
   package to use instead, not just what is wrong.
 - React hooks, `jsx-a11y` and import-cycle rules are on; custom components that
   render native elements are mapped under `settings.jsx-a11y.components`.
+- `@shadcn/lint` (design-system rules for Tailwind and shadcn components) is
+  registered under `jsPlugins` in `.oxlintrc.json`, but none of its rules is
+  enabled yet. Turn rules on as `shadcn/<rule>` there; it finds the components
+  and theme through `packages/app/components.json`.
 
 ## Formatting
 
