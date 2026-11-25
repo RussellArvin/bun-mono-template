@@ -11,6 +11,10 @@ Drizzle ORM with PostgreSQL via `drizzle-orm/bun-sql`.
   - `createdAt` — `timestamp("created_at").defaultNow().notNull()`
   - `updatedAt` — `timestamp("updated_at").defaultNow().notNull()`
 
+These conventions are linted by `repo/table-conventions`: one table per file,
+the three standard columns, and snake_case database column names (a camelCase
+key needs an explicit name, e.g. `createdAt: timestamp("created_at")`).
+
 ## Adding a New Table
 
 1. Create `src/schema/<tablename>.ts` with `pgTable()` definition

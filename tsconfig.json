@@ -5,7 +5,8 @@
     "packages/*/drizzle.config.ts",
     "packages/e2e/tests/**/*.ts",
     "packages/e2e/playwright.config.ts",
-    "tools/**/*.mjs"
+    "tools/**/*.mjs",
+    "tools/**/*.ts"
   ],
   "exclude": ["packages/app"]
 }

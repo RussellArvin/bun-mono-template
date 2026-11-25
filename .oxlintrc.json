@@ -329,6 +329,18 @@
           }
         ]
       }
+    },
+    {
+      "files": ["packages/database/src/schema/**/*.ts"],
+      "rules": {
+        "repo/table-conventions": "error"
+      }
+    },
+    {
+      "files": ["packages/server/src/routes/**/*.ts"],
+      "rules": {
+        "repo/require-route-validation": "error"
+      }
     }
   ],
   "settings": {
