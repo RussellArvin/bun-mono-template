@@ -11,6 +11,7 @@
     "start": "bun src/index.ts"
   },
   "dependencies": {
+    "@hono/bun": "^1.0.1",
     "@hono/zod-validator": "^0.7.6",
     "@repo/database": "workspace:*",
     "@repo/shared": "workspace:*",
