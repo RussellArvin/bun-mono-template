@@ -139,10 +139,152 @@ const workspaceImports = defineRule({
   },
 });
 
+const SNAKE_CASE = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/;
+const REQUIRED_COLUMNS = ["id", "createdAt", "updatedAt"];
+
+/**
+ * A column is written as a call chain: `timestamp("created_at").notNull()`.
+ * Walk to the innermost call — the column builder — to read its name argument.
+ *
+ * @param {ESTree.Expression} node
+ * @returns {ESTree.CallExpression | undefined}
+ */
+function columnBuilderCall(node) {
+  let current = node;
+  let builder;
+  while (current.type === "CallExpression") {
+    builder = current;
+    const { callee } = current;
+    if (callee.type !== "MemberExpression") break;
+    current = callee.object;
+  }
+  return builder;
+}
+
+// Table conventions from packages/database/CLAUDE.md:
+// - every table has id, createdAt and updatedAt
+// - database column names are snake_case
+// - one table per file
+const tableConventions = defineRule({
+  meta: {
+    type: "problem",
+    docs: { description: "Enforce Drizzle table conventions" },
+    messages: {
+      missingColumn:
+        'Table is missing the standard column `{{column}}`. Every table needs: id: uuid().primaryKey().defaultRandom(), createdAt: timestamp("created_at").defaultNow().notNull(), updatedAt: timestamp("updated_at").defaultNow().notNull().',
+      columnName:
+        "Database column name '{{name}}' is not snake_case. Use `{{key}}: {{builder}}(\"{{suggestion}}\")` — camelCase in TypeScript, snake_case in the database.",
+      oneTablePerFile:
+        "Only one table per file. Move this table to its own file in packages/database/src/schema/ and export it from schema/index.ts.",
+    },
+    schema: [],
+  },
+  create(context) {
+    let tables = 0;
+    return {
+      CallExpression(node) {
+        if (node.callee.type !== "Identifier") return;
+        if (node.callee.name !== "pgTable") return;
+
+        tables += 1;
+        if (tables > 1) context.report({ node, messageId: "oneTablePerFile" });
+
+        const columns = node.arguments[1];
+        if (columns?.type !== "ObjectExpression") return;
+
+        const keys = new Set();
+        for (const property of columns.properties) {
+          if (property.type !== "Property" || property.computed) continue;
+          if (property.key.type !== "Identifier") continue;
+          const key = property.key.name;
+          keys.add(key);
+
+          const builder = columnBuilderCall(property.value);
+          if (builder?.callee.type !== "Identifier") continue;
+          const nameArg = builder.arguments[0];
+          const explicit =
+            nameArg?.type === "Literal" && typeof nameArg.value === "string"
+              ? nameArg.value
+              : undefined;
+          // With no explicit name, Drizzle uses the TypeScript key as-is.
+          const name = explicit ?? key;
+          if (SNAKE_CASE.test(name)) continue;
+          context.report({
+            node: property,
+            messageId: "columnName",
+            data: {
+              name,
+              key,
+              builder: builder.callee.name,
+              suggestion: key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`),
+            },
+          });
+        }
+
+        for (const column of REQUIRED_COLUMNS) {
+          if (keys.has(column)) continue;
+          context.report({
+            node: columns,
+            messageId: "missingColumn",
+            data: { column },
+          });
+        }
+      },
+    };
+  },
+});
+
+const BODY_METHODS = new Set(["post", "put", "patch"]);
+
+// Routes that accept a body must validate it at the boundary, so handlers
+// only ever see typed input.
+const requireRouteValidation = defineRule({
+  meta: {
+    type: "problem",
+    docs: { description: "Require zValidator on routes that accept a body" },
+    messages: {
+      missing:
+        '.{{method}}() route has no validation. Add `zValidator("json", schema)` before the handler and read the body with `c.req.valid("json")` — see packages/server/src/routes/echo.ts.',
+    },
+    schema: [],
+  },
+  create(context) {
+    return {
+      CallExpression(node) {
+        const { callee } = node;
+        if (callee.type !== "MemberExpression" || callee.computed) return;
+        const method = callee.property.name;
+        if (!BODY_METHODS.has(method)) return;
+
+        // Route registrations start with a path string: `.post("/", ...)`.
+        const [path, ...handlers] = node.arguments;
+        if (path?.type !== "Literal" || typeof path.value !== "string") return;
+        if (handlers.length === 0) return;
+
+        const validated = handlers.some(
+          (arg) =>
+            arg.type === "CallExpression" &&
+            arg.callee.type === "Identifier" &&
+            arg.callee.name === "zValidator",
+        );
+        if (!validated) {
+          context.report({
+            node: callee.property,
+            messageId: "missing",
+            data: { method },
+          });
+        }
+      },
+    };
+  },
+});
+
 export default definePlugin({
   meta: { name: "repo" },
   rules: {
     "no-db-execute": noDbExecute,
     "workspace-imports": workspaceImports,
+    "table-conventions": tableConventions,
+    "require-route-validation": requireRouteValidation,
   },
 });

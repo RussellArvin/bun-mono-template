@@ -4,7 +4,8 @@ This repo is a **template**: people clone it and start building immediately.
 Keep it ready from the first clone — packages stay pre-wired, every check
 (`bun run check`, `bun test`, `bun run drizzle:check`) passes on a fresh clone
 with no database, and new tooling must not need manual setup or committed
-generated files to go green.
+generated files to go green. The one generated file in the repo is
+`.env.example`, kept because people copy it; `bun run env:example` rewrites it.
 
 ## Architecture
 
@@ -27,11 +28,15 @@ generated files to go green.
 - `bun run dev` — start all packages in dev mode (parallel)
 - `bun test` — run all unit/integration tests (e2e is excluded in `bunfig.toml`)
 - `bun run test:e2e` — run Playwright e2e tests (auto-starts server + app)
-- `bun run check` — typecheck + lint + knip + format check (the pre-commit hook runs this, then `bun test`)
+- `bun run check` — typecheck + lint + knip + workspace, docs and env checks + format check (the pre-commit hook runs this, then `bun test`)
 - `bun run fix` — auto-fix everything fixable: oxlint autofixes, then Prettier
 - `bun run typecheck` — TypeScript 7 `tsc --noEmit` across server/db/shared + `app` (with DOM types)
 - `bun run lint` — oxlint only (no fixes)
 - `bun run knip` — unused files, exports and dependencies (config: `knip.jsonc`)
+- `bun run check:workspace` — sherif: consistent dependency versions and `package.json` hygiene across packages
+- `bun run check:docs` — every `bun run <script>` named in a doc must exist in the root `package.json`
+- `bun run check:env` — `.env.example` must match the server env schema
+- `bun run env:example` — regenerate `.env.example` from `packages/server/src/lib/env.ts`
 - `bun run format` — Prettier write only
 - `bun run drizzle:generate` — generate migration from schema changes
 - `bun run drizzle:migrate` — apply pending migrations
@@ -60,7 +65,8 @@ Enforced by husky commit-msg hook — commits are rejected if they don't match.
 
 ## Pre-commit Checks
 
-Runs automatically: `bun run check` (typecheck, oxlint, knip, Prettier check), then
+Runs automatically: `bun run check` (typecheck, oxlint, knip, workspace, docs
+and env checks, Prettier check), then
 `bun test`
 
 Fix before committing: `bun run fix`, then `bun run check`
@@ -70,7 +76,10 @@ how it was verified).
 
 CI (`.github/workflows/ci.yml`) runs `bun run check` and `bun run drizzle:check`
 on every pull request and push to `main`, so `--no-verify` does not get past
-them. `bun test` is commented out in CI for now.
+them. `bun test` is commented out in CI for now. A second job runs `actionlint`
+on the workflow files. The Bun version for CI comes from `packageManager` in the
+root `package.json` — change it there. Dependabot (`.github/dependabot.yml`)
+opens weekly update PRs.
 
 ## Adding a New Package
 
@@ -131,6 +140,9 @@ export const apiRoutes = app
 
 Return errors with status: `c.json({ error: "message" }, 400)`.
 
+Every `.post()`, `.put()` and `.patch()` route must pass `zValidator(...)` before
+its handler (`repo/require-route-validation`).
+
 For DB access, import from `@repo/database` and `@repo/database/schema` and use
 the Drizzle query builder only (`db.select()`, `db.insert()`, etc.) — never
 `db.execute()` (oxlint will reject it).
@@ -145,7 +157,9 @@ fully typed from the server's `ApiRoutes` export — you get autocomplete on
 
 Server-side env vars are validated at startup in `packages/server/src/lib/env.ts`
 with Zod. Add new vars to the schema there; invalid/missing values exit the
-process with a readable error rather than failing at first use.
+process with a readable error rather than failing at first use. Give each one a
+`.describe()` — it becomes the comment in `.env.example` — then run
+`bun run env:example`.
 
 Frontend env vars must be prefixed `VITE_`, declared in
 `packages/app/src/vite-env.d.ts`, and accessed via `import.meta.env`.
@@ -187,6 +201,9 @@ These non-obvious strict flags are enabled:
 - `exactOptionalPropertyTypes` — can't assign `undefined` to optional props, omit the key instead
 - `verbatimModuleSyntax` — use `import type` for type-only imports
 - `noUnusedLocals` / `noUnusedParameters` — no unused variables or params (prefix with `_` to opt out)
+- `noImplicitReturns` — every code path in a function must return
+- `erasableSyntaxOnly` — no `enum`, constructor parameter properties or
+  code-bearing `namespace`; use union types and plain field assignments
 
 Lint adds three more type-safety rules:
 

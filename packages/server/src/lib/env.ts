@@ -1,10 +1,20 @@
 import { z } from "zod";
 
-const envSchema = z.object({
-  // URL of the web frontend, used for CORS in dev (Vite on :5173).
-  // In prod the SPA is served from the same origin as the API.
-  WEB_URL: z.url({ protocol: /^https?$/ }).default("http://localhost:5173"),
-  PORT: z.coerce.number().int().positive().default(3000),
+// `.describe()` text becomes the comment in `.env.example`
+// (regenerate with `bun run env:example`).
+export const envSchema = z.object({
+  WEB_URL: z
+    .url({ protocol: /^https?$/ })
+    .default("http://localhost:5173")
+    .describe(
+      "URL of the web frontend, used for CORS in dev (Vite on :5173). In prod the SPA is served from the same origin as the API.",
+    ),
+  PORT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(3000)
+    .describe("Port the API server listens on."),
 });
 
 const result = envSchema.safeParse(process.env);

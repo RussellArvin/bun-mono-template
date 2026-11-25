@@ -16,9 +16,9 @@
     "drizzle:check": "drizzle-kit check"
   },
   "dependencies": {
-    "drizzle-orm": "^0.44"
+    "drizzle-orm": "^0.44.7"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31"
+    "drizzle-kit": "^0.31.10"
   }
 }

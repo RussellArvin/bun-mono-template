@@ -34,30 +34,31 @@ await client.api.echo.$post({ json: { message: "hi" } });
 
 ## Scripts
 
-| Command                        | Description                                      |
-| ------------------------------ | ------------------------------------------------ |
-| `bun run dev`                  | Start server + app in parallel                   |
-| `bun test`                     | Run server unit/integration tests                |
-| `bun run test:e2e`             | Run Playwright e2e (auto-starts server + app)    |
-| `bun run check`                | Typecheck + lint + format check (pre-commit)     |
-| `bun run fix`                  | Auto-fix lint issues, then format                |
-| `bun run typecheck`            | Type-check all packages (incl. browser tsconfig) |
-| `bun run lint`                 | oxlint                                           |
-| `bun run format`               | Prettier                                         |
-| `bun run drizzle:generate`     | Generate migration from schema changes           |
-| `bun run drizzle:migrate`      | Apply pending migrations                         |
-| `bun run drizzle:migrate:test` | Apply migrations to the test database            |
-| `bun run drizzle:push`         | Push schema directly (dev only)                  |
-| `bun run drizzle:studio`       | Open Drizzle Studio                              |
+| Command                        | Description                                       |
+| ------------------------------ | ------------------------------------------------- |
+| `bun run dev`                  | Start server + app in parallel                    |
+| `bun test`                     | Run server unit/integration tests                 |
+| `bun run test:e2e`             | Run Playwright e2e (auto-starts server + app)     |
+| `bun run check`                | Typecheck, lint and every repo check (pre-commit) |
+| `bun run fix`                  | Auto-fix lint issues, then format                 |
+| `bun run typecheck`            | Type-check all packages (incl. browser tsconfig)  |
+| `bun run lint`                 | oxlint                                            |
+| `bun run format`               | Prettier                                          |
+| `bun run drizzle:generate`     | Generate migration from schema changes            |
+| `bun run drizzle:migrate`      | Apply pending migrations                          |
+| `bun run drizzle:migrate:test` | Apply migrations to the test database             |
+| `bun run drizzle:push`         | Push schema directly (dev only)                   |
+| `bun run drizzle:studio`       | Open Drizzle Studio                               |
 
 ## Local Setup
 
 1. Start Postgres locally (Docker, Postgres.app, etc.) and create a database.
-2. Create `.env` at the repo root:
+2. Copy `.env.example` to `.env` at the repo root and set `DATABASE_URL`:
    ```
-   DATABASE_URL=postgresql://user:pass@localhost:5432/mydb
+   cp .env.example .env
    ```
-   Bun auto-loads it — no `dotenv` needed.
+   Bun auto-loads it — no `dotenv` needed. `.env.example` is generated from the
+   server's env schema (`bun run env:example`), so it always lists every variable.
 3. (Optional, for tests) Create a separate test database and run `bun run drizzle:migrate:test`.
 4. `bun install && bun run dev`.
 
