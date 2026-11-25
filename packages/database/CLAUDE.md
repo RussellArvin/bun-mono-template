@@ -22,6 +22,8 @@ key needs an explicit name, e.g. `createdAt: timestamp("created_at")`).
 3. Run `bun run drizzle:generate` to create a SQL migration
 4. Run `bun run drizzle:migrate` to apply it (or `drizzle:push` for dev)
 
+`src/schema/notes.ts` is the example table — copy its shape, then delete it.
+
 ## Environment
 
 - Requires `DATABASE_URL` env var (Postgres connection string)

@@ -25,7 +25,8 @@
     "node_modules/",
     "dist/",
     "packages/*/dist/",
-    "packages/app/src/components/ui/"
+    "packages/app/src/components/ui/",
+    "tools/lint-fixtures/"
   ],
   "rules": {
     "no-case-declarations": "error",
@@ -213,7 +214,18 @@
       {
         "allow": ["error", "warn"]
       }
-    ]
+    ],
+    "shadcn/no-restyle": [
+      "error",
+      {
+        "allow": ["layout"]
+      }
+    ],
+    "shadcn/no-raw-colors": "error",
+    "shadcn/no-arbitrary-values": "error",
+    "shadcn/no-inline-styles": "error",
+    "shadcn/no-unknown-classes": "error",
+    "shadcn/require-static-classes": "error"
   },
   "overrides": [
     {
@@ -341,13 +353,34 @@
       "rules": {
         "repo/require-route-validation": "error"
       }
+    },
+    {
+      "files": ["packages/app/src/**/*.tsx"],
+      "rules": {
+        "repo/no-raw-elements": [
+          "error",
+          {
+            "elements": {
+              "button": "Button",
+              "input": "Input",
+              "textarea": "Textarea",
+              "select": "Select",
+              "label": "Label"
+            }
+          }
+        ]
+      }
     }
   ],
   "settings": {
     "jsx-a11y": {
       "components": {
-        "Button": "button"
+        "Button": "button",
+        "Input": "input"
       }
+    },
+    "shadcn": {
+      "note": "Do not work around this with a disable comment. Reuse a variant or theme token; if the design needs a new one, add the variant in packages/app/src/components/ui or the token in packages/app/src/index.css."
     }
   }
 }
